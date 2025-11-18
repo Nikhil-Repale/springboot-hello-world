@@ -2,8 +2,8 @@ pipeline {
   agent any
 
   environment {
-    DOCKERHUB_CRED = 'docker_cred_1'        // ✅ Jenkins credentials ID for DockerHub
-    IMAGE_NAME = "nikhil2202/springboot-hello-world"  // ✅ Docker image name
+    DOCKERHUB_CRED = 'docker_cred_1'                     // DockerHub credential ID
+    IMAGE_NAME = "nikhil2202/springboot-hello-world"     // DockerHub repo name
   }
 
   options {
@@ -20,6 +20,9 @@ pipeline {
     }
 
     stage('Build (Maven)') {
+      tools {
+        maven 'Maven3'    // Uses Jenkins-managed Maven installation
+      }
       steps {
         sh 'mvn -B -DskipTests clean package'
       }
@@ -31,6 +34,9 @@ pipeline {
     }
 
     stage('Run Unit Tests') {
+      tools {
+        maven 'Maven3'
+      }
       steps {
         sh 'mvn test'
         junit 'target/surefire-reports/*.xml'
@@ -38,6 +44,9 @@ pipeline {
     }
 
     stage('SonarQube Analysis') {
+      tools {
+        maven 'Maven3'
+      }
       steps {
         withSonarQubeEnv('SonarQube') {
           sh 'mvn sonar:sonar'
