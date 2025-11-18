@@ -2,9 +2,8 @@ pipeline {
   agent any
 
   environment {
-    DOCKERHUB_CRED = 'docker_cred_1'     // ✅ your DockerHub credential ID in Jenkins
-    SONAR_TOKEN = credentials('sonar-token-id')  // optional, if you have SonarQube
-    IMAGE_NAME = "nikhil2202/springboot-hello-world"   // ✅ your DockerHub repo
+    DOCKERHUB_CRED = 'docker_cred_1'        // ✅ Jenkins credentials ID for DockerHub
+    IMAGE_NAME = "nikhil2202/springboot-hello-world"  // ✅ Docker image name
   }
 
   options {
@@ -39,12 +38,9 @@ pipeline {
     }
 
     stage('SonarQube Analysis') {
-      when {
-        expression { return env.SONAR_TOKEN != null }
-      }
       steps {
         withSonarQubeEnv('SonarQube') {
-          sh "mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
+          sh 'mvn sonar:sonar'
         }
       }
     }
