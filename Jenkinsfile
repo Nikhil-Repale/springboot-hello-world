@@ -2,8 +2,8 @@ pipeline {
   agent any
 
   environment {
-    DOCKERHUB_CRED = 'docker_cred_1'                     // DockerHub credential ID
-    IMAGE_NAME = "nikhil2202/springboot-hello-world"     // DockerHub repo name
+    DOCKERHUB_CRED = 'docker_cred_1'
+    IMAGE_NAME = "nikhil2202/springboot-hello-world"
   }
 
   options {
@@ -20,9 +20,6 @@ pipeline {
     }
 
     stage('Build (Maven)') {
-      tools {
-        maven 'Maven3'    // Uses Jenkins-managed Maven installation
-      }
       steps {
         sh 'mvn -B -DskipTests clean package'
       }
@@ -34,9 +31,6 @@ pipeline {
     }
 
     stage('Run Unit Tests') {
-      tools {
-        maven 'Maven3'
-      }
       steps {
         sh 'mvn test'
         junit 'target/surefire-reports/*.xml'
@@ -44,9 +38,6 @@ pipeline {
     }
 
     stage('SonarQube Analysis') {
-      tools {
-        maven 'Maven3'
-      }
       steps {
         withSonarQubeEnv('SonarQube') {
           sh 'mvn sonar:sonar'
@@ -75,7 +66,7 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CRED}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
             docker push ${IMAGE_NAME}:${IMAGE_TAG}
             docker push ${IMAGE_NAME}:latest
           '''
@@ -92,14 +83,16 @@ pipeline {
 
     stage('Update K8s Manifest for ArgoCD') {
       steps {
-        sh '''
-          sed -i "s|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" k8s/deployment.yaml
-          git config user.email "jenkins@example.com"
-          git config user.name "jenkins"
-          git add k8s/deployment.yaml
-          git commit -m "Update image tag to ${IMAGE_TAG}" || true
-          git push origin main || true
-        '''
+        script {
+          sh """
+            sed -i "s|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" k8s/deployment.yaml
+            git config user.email "jenkins@example.com"
+            git config user.name "jenkins"
+            git add k8s/deployment.yaml || true
+            git commit -m "ci: update image to ${IMAGE_NAME}:${IMAGE_TAG}" || true
+            git push origin main || true
+          """
+        }
       }
     }
   }
