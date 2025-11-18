@@ -2,10 +2,9 @@ pipeline {
   agent any
 
   environment {
-    DOCKERHUB_CRED = 'dockerhub-cred-id'
-    JFROG_CRED = 'jfrog-cred-id'
-    SONAR_TOKEN = credentials('sonar-token-id')
-    IMAGE_NAME = "yourdockerhubusername/springboot-hello-world"
+    DOCKERHUB_CRED = 'docker_cred_1'     // ✅ your DockerHub credential ID in Jenkins
+    SONAR_TOKEN = credentials('sonar-token-id')  // optional, if you have SonarQube
+    IMAGE_NAME = "nikhil2202/springboot-hello-world"   // ✅ your DockerHub repo
   }
 
   options {
@@ -14,6 +13,7 @@ pipeline {
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         checkout scm
@@ -39,20 +39,12 @@ pipeline {
     }
 
     stage('SonarQube Analysis') {
+      when {
+        expression { return env.SONAR_TOKEN != null }
+      }
       steps {
         withSonarQubeEnv('SonarQube') {
           sh "mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
-        }
-      }
-    }
-
-    stage('Upload to JFrog') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: "${JFROG_CRED}", usernameVariable: 'JF_USER', passwordVariable: 'JF_PASS')]) {
-          sh '''
-            ARTIFACT=target/*.jar
-            curl -u $JF_USER:$JF_PASS -T ${ARTIFACT} "https://your-jfrog-url/artifactory/libs-release-local/springboot/${BUILD_NUMBER}/springboot-hello-world-${BUILD_NUMBER}.jar"
-          '''
         }
       }
     }
@@ -109,7 +101,11 @@ pipeline {
 
   post {
     always {
-      cleanWs()
+      script {
+        node {
+          cleanWs()
+        }
+      }
     }
     success {
       echo "✅ Build ${env.BUILD_NUMBER} completed successfully!"
@@ -119,3 +115,4 @@ pipeline {
     }
   }
 }
+
